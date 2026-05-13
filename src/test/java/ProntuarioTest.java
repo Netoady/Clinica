@@ -54,7 +54,7 @@ public class ProntuarioTest {
 				"\nVolte sempre, a casa é sua!" +
 				"\n----------------------------------------------------------------------------------------------";
 
-		assertEquals(respostaEsperada, prontuario.imprimaConta());
+		assertEquals(respostaEsperada, prontuario.gerarRelatorio());
 	}
 
 	@Test
@@ -83,7 +83,7 @@ public class ProntuarioTest {
 				"\nVolte sempre, a casa é sua!" +
 				"\n----------------------------------------------------------------------------------------------";
 
-		assertEquals(respostaEsperada, prontuario.imprimaConta());
+		assertEquals(respostaEsperada, prontuario.gerarRelatorio());
 	}
 
 	@Test
@@ -102,20 +102,22 @@ public class ProntuarioTest {
 				"\nVolte sempre, a casa é sua!" +
 				"\n----------------------------------------------------------------------------------------------";
 
-		assertEquals(respostaEsperada, prontuario.imprimaConta());
+		assertEquals(respostaEsperada, prontuario.gerarRelatorio());
 	}
 
 	@Test
 	public void testCarregarArquivoSemInternacao() {
 		String path = "src/test/resources/prontuario_exportado_sem_internacao.csv";
-
-		Prontuario prontuario = null;
+// As chamadas de métodos de arquivo agora passam pelo ProntuarioRepository.
+		ProntuarioRepository repository = new ProntuarioRepository();
+    Prontuario prontuario = null;
 
 		try {
-			prontuario = new Prontuario(null).carregueProntuario(path);
-		} catch (IOException ioException) {
-			ioException.printStackTrace();
-		}
+        // Chamamos o método no repository, não mais no prontuário
+        prontuario = repository.carregueProntuario(path);
+    } catch (IOException ioException) {
+        ioException.printStackTrace();
+    }
 
 		assertEquals("Ermenegildo Godofredo", prontuario.getNomePaciente());
 		assertNull(prontuario.getInternacao());
@@ -132,14 +134,16 @@ public class ProntuarioTest {
 	public void testCarregarArquivoSemProcedimentos() {
 		String path = "src/test/resources/prontuario_exportado_sem_procedimentos.csv";
 
+		ProntuarioRepository repository = new ProntuarioRepository();
 		Prontuario prontuario = null;
 
 		try {
-			prontuario = new Prontuario(null).carregueProntuario(path);
-		} catch (IOException ioException) {
-			ioException.printStackTrace();
-			fail(ioException.getMessage());
-		}
+        // 2. Chame o método a partir do repository
+        prontuario = repository.carregueProntuario(path);
+    } catch (IOException ioException) {
+        ioException.printStackTrace();
+        fail(ioException.getMessage());
+    }
 
 		assertEquals("Ruither Silveira", prontuario.getNomePaciente());
 		assertEquals(0, prontuario.getProcedimentos().size());
@@ -152,10 +156,11 @@ public class ProntuarioTest {
 	public void testCarregarArquivoCompleto() {
 		String path = "src/test/resources/prontuario_exportado_completo.csv";
 
+		ProntuarioRepository repository = new ProntuarioRepository();
 		Prontuario prontuario = null;
 
 		try {
-			prontuario = new Prontuario(null).carregueProntuario(path);
+			prontuario = repository.carregueProntuario(path);
 		} catch (IOException ioException) {
 			ioException.printStackTrace();
 		}
@@ -172,6 +177,9 @@ public class ProntuarioTest {
 		assertEquals(15L, procedimentosAgrupados.get(TipoProcedimento.AVANCADO).longValue());
 		assertNull(procedimentosAgrupados.get(TipoProcedimento.COMUM));
 	}
+
+// A refatoração forçou os testes a serem mais precisos. Agora esse arquivo testa o cálculo de valores (lógica) separadamente do carregamento de arquivos (infraestrutura), o que facilita encontrar onde está um erro caso algo quebre.
+
 /**
 	@Test
 	public void testSalvarProntuarioVazio() {
