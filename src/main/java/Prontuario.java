@@ -1,5 +1,6 @@
 import java.text.NumberFormat;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 public class Prontuario {
@@ -47,10 +48,63 @@ public class Prontuario {
     }
 
     public String gerarRelatorio() {
-        NumberFormat formatter = NumberFormat.getCurrencyInstance();
+        // Força a localização para garantir o padrão R$
+        NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
         StringBuilder sb = new StringBuilder();
-        sb.append("Conta do Paciente: ").append(nomePaciente).append("\n");
-        sb.append("Total: ").append(formatter.format(getTotalConta()));
+
+        sb.append("----------------------------------------------------------------------------------------------\n");
+        
+        // Remove o espaço não-quebrável que o NumberFormat gera e padroniza com um espaço comum
+        String totalConta = formatter.format(getTotalConta()).replace("\u00A0", " ");
+        
+        // Texto exato esperado pelo teste: "A conta do(a) paciente " sem os dois pontos adicionais
+        sb.append("A conta do(a) paciente ").append(nomePaciente).append(" tem valor total de __ ").append(totalConta).append(" __\n");
+        sb.append("\n");
+        sb.append("Conforme os detalhes abaixo:\n");
+        sb.append("\n");
+
+        // Detalhe das Diárias de Internação
+        if (internacao != null) {
+            String valorInternacao = formatter.format(internacao.getTipoLeito().calcularValor(internacao.getQtdeDias())).replace("\u00A0", " ");
+            sb.append("Valor Total Diárias:\t\t\tR$ ").append(valorInternacao.replace("R$", "").trim()).append("\n");
+            
+            String sufixoLeito = internacao.getTipoLeito().toString().toLowerCase();
+            String sufixoDias = internacao.getQtdeDias() == 1 ? "diária" : "diárias";
+            sb.append("\t\t\t\t\t").append(internacao.getQtdeDias()).append(" ").append(sufixoDias).append(" em ").append(sufixoLeito).append("\n");
+            sb.append("\n");
+        }
+
+        // Detalhe dos Procedimentos
+        if (!procedimentos.isEmpty()) {
+            double somaProcedimentos = procedimentos.stream()
+                    .mapToDouble(p -> p.getTipoProcedimento().getValor())
+                    .sum();
+            String valorProcedimentos = formatter.format(somaProcedimentos).replace("\u00A0", " ");
+            
+            sb.append("Valor Total Procedimentos:\t\tR$ ").append(valorProcedimentos.replace("R$", "").trim()).append("\n");
+
+            long basicos = procedimentos.stream().filter(p -> p.getTipoProcedimento() == TipoProcedimento.BASICO).count();
+            long comuns = procedimentos.stream().filter(p -> p.getTipoProcedimento() == TipoProcedimento.COMUM).count();
+            long avancados = procedimentos.stream().filter(p -> p.getTipoProcedimento() == TipoProcedimento.AVANCADO).count();
+
+            if (basicos > 0) {
+                String sufixo = basicos == 1 ? "procedimento básico" : "procedimentos básicos";
+                sb.append("\t\t\t\t\t").append(basicos).append(" ").append(sufixo).append("\n");
+            }
+            if (comuns > 0) {
+                String sufixo = comuns == 1 ? "procedimento comum" : "procedimentos comuns";
+                sb.append("\t\t\t\t\t").append(comuns).append(" ").append(sufixo).append("\n");
+            }
+            if (avancados > 0) {
+                String sufixo = avancados == 1 ? "procedimento avançado" : "procedimentos avançados";
+                sb.append("\t\t\t\t\t").append(avancados).append(" ").append(sufixo).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        sb.append("Volte sempre, a casa é sua!\n");
+        sb.append("----------------------------------------------------------------------------------------------");
+
         return sb.toString();
     }
 }
